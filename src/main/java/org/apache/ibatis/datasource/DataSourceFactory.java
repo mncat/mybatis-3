@@ -20,6 +20,7 @@ import javax.sql.DataSource;
 
 /**
  * @author Clinton Begin
+ * 数据源工厂，定义了数据源具备的接口，设置属性接口和获取数据源的接口
  */
 public interface DataSourceFactory {
 

@@ -23,6 +23,7 @@ import org.apache.logging.log4j.MarkerManager;
 
 /**
  * @author Eduardo Macarron
+ * log4j2的logger，和slf4j一样，也是代理模式，底下的Log4j2AbstractLoggerImpl或Log4j2LoggerImpl才是真正的log
  */
 public class Log4j2LoggerImpl implements Log {
   

@@ -29,6 +29,12 @@ class Slf4jLoggerImpl implements Log {
     log = logger;
   }
 
+  /**
+   * 实现Log接口，并重写对应的方法，在方法内部调用的是slf4j的日志实现，
+   * 我们最初说过mybatis的Log接口只是定义了自己想要的功能而已，功能的实
+   * 现自己并不会去做，而是绑定第三方日志组件之后交由第三方组件去做，这里
+   * 看的很清楚了，就是交给slf4j组件去做。
+   */
   @Override
   public boolean isDebugEnabled() {
     return log.isDebugEnabled();
