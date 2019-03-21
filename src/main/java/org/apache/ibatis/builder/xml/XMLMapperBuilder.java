@@ -53,6 +53,7 @@ import org.apache.ibatis.type.TypeHandler;
 public class XMLMapperBuilder extends BaseBuilder {
 
   private XPathParser parser;
+  //建造助手，协助创建对象
   private MapperBuilderAssistant builderAssistant;
   private Map<String, XNode> sqlFragments;
   private String resource;
@@ -88,7 +89,9 @@ public class XMLMapperBuilder extends BaseBuilder {
   }
 
   public void parse() {
+    //没有加载才继续加载
     if (!configuration.isResourceLoaded(resource)) {
+      //解析整个Mapper文件，Mapper文件的根节点是mapper
       configurationElement(parser.evalNode("/mapper"));
       configuration.addLoadedResource(resource);
       bindMapperForNamespace();
@@ -103,18 +106,26 @@ public class XMLMapperBuilder extends BaseBuilder {
     return sqlFragments.get(refid);
   }
 
+  //解析mapper.xml文件的主流程
   private void configurationElement(XNode context) {
     try {
+        //1.获取namespace属性
       String namespace = context.getStringAttribute("namespace");
       if (namespace == null || namespace.equals("")) {
         throw new BuilderException("Mapper's namespace cannot be empty");
       }
+      //把属性交给建造助手
       builderAssistant.setCurrentNamespace(namespace);
       cacheRefElement(context.evalNode("cache-ref"));
+      //重点:解析cache节点，和缓存相关
       cacheElement(context.evalNode("cache"));
+      //
       parameterMapElement(context.evalNodes("/mapper/parameterMap"));
+      //重点:解析resultMap
       resultMapElements(context.evalNodes("/mapper/resultMap"));
+      //解析sql
       sqlElement(context.evalNodes("/mapper/sql"));
+      //重点：解析sql语句
       buildStatementFromContext(context.evalNodes("select|insert|update|delete"));
     } catch (Exception e) {
       throw new BuilderException("Error parsing Mapper XML. Cause: " + e, e);
@@ -198,15 +209,24 @@ public class XMLMapperBuilder extends BaseBuilder {
 
   private void cacheElement(XNode context) throws Exception {
     if (context != null) {
+        //获取cache的type属性，默认PERPETUAL,即使用mybatis的默认缓存实现
       String type = context.getStringAttribute("type", "PERPETUAL");
+      //找到对应类型的缓存的实现
       Class<? extends Cache> typeClass = typeAliasRegistry.resolveAlias(type);
+      //获取缓存淘汰策略，默认LRU
       String eviction = context.getStringAttribute("eviction", "LRU");
+      //找到对应淘汰策略的实现类
       Class<? extends Cache> evictionClass = typeAliasRegistry.resolveAlias(eviction);
+      //获取缓存刷新周期
       Long flushInterval = context.getLongAttribute("flushInterval");
+      //获取缓存大小
       Integer size = context.getIntAttribute("size");
+        //判断缓存是否只读
       boolean readWrite = !context.getBooleanAttribute("readOnly", false);
+      //判断缓存是否阻塞(阻塞式缓存)
       boolean blocking = context.getBooleanAttribute("blocking", false);
       Properties props = context.getChildrenAsProperties();
+      //创建缓存对象，放进Configuration，由创建助手来完成创建的过程
       builderAssistant.useNewCache(typeClass, evictionClass, flushInterval, size, readWrite, blocking, props);
     }
   }
@@ -336,7 +356,7 @@ public class XMLMapperBuilder extends BaseBuilder {
       }
     }
   }
-  
+
   private boolean databaseIdMatchesCurrent(String id, String databaseId, String requiredDatabaseId) {
     if (requiredDatabaseId != null) {
       if (!requiredDatabaseId.equals(databaseId)) {
@@ -377,7 +397,7 @@ public class XMLMapperBuilder extends BaseBuilder {
     JdbcType jdbcTypeEnum = resolveJdbcType(jdbcType);
     return builderAssistant.buildResultMapping(resultType, property, column, javaTypeClass, jdbcTypeEnum, nestedSelect, nestedResultMap, notNullColumn, columnPrefix, typeHandlerClass, flags, resultSet, foreignColumn, lazy);
   }
-  
+
   private String processNestedResultMappings(XNode context, List<ResultMapping> resultMappings) throws Exception {
     if ("association".equals(context.getName())
         || "collection".equals(context.getName())

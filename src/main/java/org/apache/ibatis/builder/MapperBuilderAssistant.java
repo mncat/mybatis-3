@@ -137,6 +137,7 @@ public class MapperBuilderAssistant extends BaseBuilder {
         .blocking(blocking)
         .properties(props)
         .build();
+    //添加缓存到配置对象，2级缓存是以命名空间为单位划分的
     configuration.addCache(cache);
     currentCache = cache;
     return cache;

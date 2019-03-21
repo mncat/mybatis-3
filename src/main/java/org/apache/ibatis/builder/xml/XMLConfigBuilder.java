@@ -49,6 +49,7 @@ import org.apache.ibatis.type.JdbcType;
 /**
  * @author Clinton Begin
  * @author Kazuki Shimizu
+ * 解析核心配置文件mybatis-config.xml的类(核心配置文件的名称可以自定义)
  */
 public class XMLConfigBuilder extends BaseBuilder {
 
@@ -90,15 +91,21 @@ public class XMLConfigBuilder extends BaseBuilder {
     this.parser = parser;
   }
 
+  //解析配置
   public Configuration parse() {
     if (parsed) {
       throw new BuilderException("Each XMLConfigBuilder can only be used once.");
     }
     parsed = true;
+    //读取configuration根节点下面的配置信息
     parseConfiguration(parser.evalNode("/configuration"));
     return configuration;
   }
 
+  /**
+   * 解析核心配置文件的关键方法，
+   * 读取节点的信息，并通过对应的方法去解析配置，解析到的配置全部会放在configuration里面
+   * */
   private void parseConfiguration(XNode root) {
     try {
       Properties settings = settingsAsPropertiess(root.evalNode("settings"));
@@ -214,21 +221,29 @@ public class XMLConfigBuilder extends BaseBuilder {
 
   private void propertiesElement(XNode context) throws Exception {
     if (context != null) {
+      //1.如果Properties有内容，就去读取子节点Propertie，读取配置放在一个Properties里面
       Properties defaults = context.getChildrenAsProperties();
+      //解析resource属性
       String resource = context.getStringAttribute("resource");
+      //解析url属性
       String url = context.getStringAttribute("url");
+      //2者不能同时为空
       if (resource != null && url != null) {
         throw new BuilderException("The properties element cannot specify both a URL and a resource based property file reference.  Please specify one or the other.");
       }
+      //根据resource加载配置文件
       if (resource != null) {
         defaults.putAll(Resources.getResourceAsProperties(resource));
       } else if (url != null) {
+        //根据url加载配置文件
         defaults.putAll(Resources.getUrlAsProperties(url));
       }
+      //配置全部合并
       Properties vars = configuration.getVariables();
       if (vars != null) {
         defaults.putAll(vars);
       }
+      //更新配置，读取到的配置最终是要放到configuration里面去的
       parser.setVariables(defaults);
       configuration.setVariables(defaults);
     }
@@ -355,13 +370,16 @@ public class XMLConfigBuilder extends BaseBuilder {
     if (parent != null) {
       for (XNode child : parent.getChildren()) {
         if ("package".equals(child.getName())) {
+          //按照包来添加，扫包之后默认会在包下面找对应的mapper映射文件
           String mapperPackage = child.getStringAttribute("name");
           configuration.addMappers(mapperPackage);
         } else {
+          //一个一个Mapper.xml文件的添加 ， resource和url和class三者是互斥的，resource优先级最高
           String resource = child.getStringAttribute("resource");
           String url = child.getStringAttribute("url");
           String mapperClass = child.getStringAttribute("class");
           if (resource != null && url == null && mapperClass == null) {
+            //实例化XMLMapperBuilder来解析xml配置文件
             ErrorContext.instance().resource(resource);
             InputStream inputStream = Resources.getResourceAsStream(resource);
             XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, resource, configuration.getSqlFragments());
