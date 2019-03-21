@@ -1,19 +1,22 @@
 /**
- *    Copyright 2009-2015 the original author or authors.
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *       http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+ * Copyright 2009-2015 the original author or authors.
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.ibatis.cache.decorators;
+
+import org.apache.ibatis.cache.Cache;
+import org.apache.ibatis.cache.CacheException;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -21,110 +24,124 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.ibatis.cache.Cache;
-import org.apache.ibatis.cache.CacheException;
-
 /**
- * Simple blocking decorator 
- * 
+ * Simple blocking decorator
+ * <p>
  * Simple and inefficient version of EhCache's BlockingCache decorator.
  * It sets a lock over a cache key when the element is not found in cache.
  * This way, other threads will wait until this element is filled instead of hitting the database.
- * 
- * @author Eduardo Macarron
  *
+ * @author Eduardo Macarron
+ * 具备阻塞的缓存组件，不允许线程并发访问缓存，需要同步
  */
 public class BlockingCache implements Cache {
 
-  private long timeout;
-  private final Cache delegate;
-  private final ConcurrentHashMap<Object, ReentrantLock> locks;
+    private long timeout;
+    private final Cache delegate;
+    /**
+     * 内部使用ConcurrentHashMap保存了很多的锁,这里是为了缩小锁的粒度，提高性能
+     * 。比如有100个key，如果使用一把锁，那么每一个线程需要访问缓存都需要
+     * 加锁，但是粒度细化之后，有100把锁，100个请求不同key的线程之间是不需要排队的
+     * 如果有多个线程访问同一个key的缓存，那么这几个线程之间需要同步
+     */
+    private final ConcurrentHashMap<Object, ReentrantLock> locks;
 
-  public BlockingCache(Cache delegate) {
-    this.delegate = delegate;
-    this.locks = new ConcurrentHashMap<Object, ReentrantLock>();
-  }
-
-  @Override
-  public String getId() {
-    return delegate.getId();
-  }
-
-  @Override
-  public int getSize() {
-    return delegate.getSize();
-  }
-
-  @Override
-  public void putObject(Object key, Object value) {
-    try {
-      delegate.putObject(key, value);
-    } finally {
-      releaseLock(key);
+    public BlockingCache(Cache delegate) {
+        this.delegate = delegate;
+        this.locks = new ConcurrentHashMap<Object, ReentrantLock>();
     }
-  }
 
-  @Override
-  public Object getObject(Object key) {
-    acquireLock(key);
-    Object value = delegate.getObject(key);
-    if (value != null) {
-      releaseLock(key);
-    }        
-    return value;
-  }
+    @Override
+    public String getId() {
+        return delegate.getId();
+    }
 
-  @Override
-  public Object removeObject(Object key) {
-    // despite of its name, this method is called only to release locks
-    releaseLock(key);
-    return null;
-  }
+    @Override
+    public int getSize() {
+        return delegate.getSize();
+    }
 
-  @Override
-  public void clear() {
-    delegate.clear();
-  }
-
-  @Override
-  public ReadWriteLock getReadWriteLock() {
-    return null;
-  }
-  
-  private ReentrantLock getLockForKey(Object key) {
-    ReentrantLock lock = new ReentrantLock();
-    ReentrantLock previous = locks.putIfAbsent(key, lock);
-    return previous == null ? lock : previous;
-  }
-  
-  private void acquireLock(Object key) {
-    Lock lock = getLockForKey(key);
-    if (timeout > 0) {
-      try {
-        boolean acquired = lock.tryLock(timeout, TimeUnit.MILLISECONDS);
-        if (!acquired) {
-          throw new CacheException("Couldn't get a lock in " + timeout + " for the key " +  key + " at the cache " + delegate.getId());  
+    @Override
+    public void putObject(Object key, Object value) {
+        try {
+            //put操作添加缓存不需要获取锁，但是需要检查如果本线程占用了锁，则释放锁
+            delegate.putObject(key, value);
+        } finally {
+            releaseLock(key);
         }
-      } catch (InterruptedException e) {
-        throw new CacheException("Got interrupted while trying to acquire lock for key " + key, e);
-      }
-    } else {
-      lock.lock();
     }
-  }
-  
-  private void releaseLock(Object key) {
-    ReentrantLock lock = locks.get(key);
-    if (lock.isHeldByCurrentThread()) {
-      lock.unlock();
+
+    /**
+     * 线程安全的获取缓存方法
+     * 获取缓存的方法需要加锁，
+     */
+    @Override
+    public Object getObject(Object key) {
+        acquireLock(key);
+        Object value = delegate.getObject(key);
+        if (value != null) {
+            releaseLock(key);
+        }
+        return value;
     }
-  }
 
-  public long getTimeout() {
-    return timeout;
-  }
+    @Override
+    public Object removeObject(Object key) {
+        // despite of its name, this method is called only to release locks
+        releaseLock(key);
+        return null;
+    }
 
-  public void setTimeout(long timeout) {
-    this.timeout = timeout;
-  }  
+    @Override
+    public void clear() {
+        delegate.clear();
+    }
+
+    @Override
+    public ReadWriteLock getReadWriteLock() {
+        return null;
+    }
+
+    private ReentrantLock getLockForKey(Object key) {
+        //每个key的锁都不一样，减小了锁的粒度，将锁使用key-lock这样的键值对保存在ConcurrentHashMap中，如果锁存在
+        //就从Map中拿到锁，如果还没有锁，就把锁放进去，putIfAbsent方法只会在key不存在的时候放进去，存在就返回旧值
+        ReentrantLock lock = new ReentrantLock();
+        ReentrantLock previous = locks.putIfAbsent(key, lock);
+        return previous == null ? lock : previous;
+    }
+
+    private void acquireLock(Object key) {
+        //1.获取key对应的锁
+        Lock lock = getLockForKey(key);
+        if (timeout > 0) {
+            try {
+                //2.拿到锁之后，尝试加锁
+                boolean acquired = lock.tryLock(timeout, TimeUnit.MILLISECONDS);
+                if (!acquired) {
+                    throw new CacheException("Couldn't get a lock in " + timeout + " for the key " + key + " at the cache " + delegate.getId());
+                }
+            } catch (InterruptedException e) {
+                throw new CacheException("Got interrupted while trying to acquire lock for key " + key, e);
+            }
+        } else {
+            //3.没有指定超时，那么就阻塞获取锁，直到拿到锁为止
+            lock.lock();
+        }
+    }
+
+    //释放锁，这里不同的key对应的锁是不一样的，每个key对应的锁保存早ConcurrentHashMap里面
+    private void releaseLock(Object key) {
+        ReentrantLock lock = locks.get(key);
+        if (lock.isHeldByCurrentThread()) {
+            lock.unlock();
+        }
+    }
+
+    public long getTimeout() {
+        return timeout;
+    }
+
+    public void setTimeout(long timeout) {
+        this.timeout = timeout;
+    }
 }

@@ -33,7 +33,7 @@ import java.util.concurrent.locks.ReadWriteLock;
  * 缓存中的key也删除。这样就为缓存实现了FIFO的淘汰策略
  * <p>
  * 小结一下：
- * 为线程添加缓存功能修改的地方只有一下2处，其他都是原封不动的调用PerpetualCache的方法：
+ * 为线程添加缓存FIFO淘汰功能修改的地方只有一下2处，其他都是原封不动的调用PerpetualCache的方法：
  * A.存入元素时，需要检查FIFO队列
  * B.清除元素时，清除FIFO队列
  */

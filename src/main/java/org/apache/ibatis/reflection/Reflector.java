@@ -41,7 +41,7 @@ import org.apache.ibatis.reflection.property.PropertyNamer;
 /**
  * This class represents a cached set of class definition information that
  * allows for easy mapping between property names and getter/setter methods.
- *
+ * 这个类封装了一个类的定义信息，可以让我们更容易的在属性名字和get/set方法之间做映射
  * @author Clinton Begin
  */
 public class Reflector {
@@ -49,11 +49,17 @@ public class Reflector {
   private static final String[] EMPTY_STRING_ARRAY = new String[0];
 
   private Class<?> type;
+  //可读属性名称集合，
   private String[] readablePropertyNames = EMPTY_STRING_ARRAY;
+  //可写属性名称集合，存在set方法表示可写
   private String[] writeablePropertyNames = EMPTY_STRING_ARRAY;
+  //属性set方法集合
   private Map<String, Invoker> setMethods = new HashMap<String, Invoker>();
+  //属性get方法集合
   private Map<String, Invoker> getMethods = new HashMap<String, Invoker>();
+  //set方法的参数类型
   private Map<String, Class<?>> setTypes = new HashMap<String, Class<?>>();
+  //get方法的返回值类型
   private Map<String, Class<?>> getTypes = new HashMap<String, Class<?>>();
   private Constructor<?> defaultConstructor;
 
@@ -61,6 +67,7 @@ public class Reflector {
 
   public Reflector(Class<?> clazz) {
     type = clazz;
+    //
     addDefaultConstructor(clazz);
     addGetMethods(clazz);
     addSetMethods(clazz);
@@ -258,7 +265,8 @@ public class Reflector {
           // pr #16 - final static can only be set by the classloader
           int modifiers = field.getModifiers();
           if (!(Modifier.isFinal(modifiers) && Modifier.isStatic(modifiers))) {
-            addSetField(field);
+            //给没有set方法的属性增加一个set方法
+              addSetField(field);
           }
         }
         if (!getMethods.containsKey(field.getName())) {
