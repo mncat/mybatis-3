@@ -196,9 +196,11 @@ public class UnpooledDataSource implements DataSource {
     return doGetConnection(props);
   }
 
+  //获取数据库连接
   private Connection doGetConnection(Properties properties) throws SQLException {
     initializeDriver();
     Connection connection = DriverManager.getConnection(url, properties);
+    //设置事物是否自动提交，事物隔离级别
     configureConnection(connection);
     return connection;
   }
@@ -208,6 +210,7 @@ public class UnpooledDataSource implements DataSource {
       Class<?> driverType;
       try {
         if (driverClassLoader != null) {
+            //这里和JDBC的代码是一样的
           driverType = Class.forName(driver, true, driverClassLoader);
         } else {
           driverType = Resources.classForName(driver);

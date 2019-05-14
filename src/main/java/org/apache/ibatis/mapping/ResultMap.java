@@ -26,9 +26,11 @@ import org.apache.ibatis.session.Configuration;
 
 /**
  * @author Clinton Begin
+ * ResultMap对应的数据结构，内部是使用ResultMapping保存
  */
 public class ResultMap {
   private String id;
+  //ResultMap的type属性
   private Class<?> type;
   private List<ResultMapping> resultMappings;
   private List<ResultMapping> idResultMappings;
@@ -38,6 +40,7 @@ public class ResultMap {
   private Discriminator discriminator;
   private boolean hasNestedResultMaps;
   private boolean hasNestedQueries;
+  //是否开启自定映射
   private Boolean autoMapping;
 
   private ResultMap() {

@@ -38,12 +38,16 @@ import java.util.*;
  * @author Clinton Begin
  * @author Eduardo Macarron
  * @author Lasse Voss
+ * Mapper映射方法
  */
 public class MapperMethod {
 
+    //sqlCommand是对sql语句封装，从配置对象中获取方法的命名空间，方法名称和sql语句类型
   private final SqlCommand command;
+  //封装mapper接口方法的相关信息(入参和返回值类型)
   private final MethodSignature method;
 
+  //构造方法，通过mapper接口，方法，配置文件创建实例
   public MapperMethod(Class<?> mapperInterface, Method method, Configuration config) {
     this.command = new SqlCommand(config, mapperInterface, method);
     this.method = new MethodSignature(config, mapperInterface, method);
@@ -201,13 +205,16 @@ public class MapperMethod {
 
   public static class SqlCommand {
 
+      //sql的名称，命名空间+方法名称
     private final String name;
+    //sql语句的类型
     private final SqlCommandType type;
 
     public SqlCommand(Configuration configuration, Class<?> mapperInterface, Method method) {
       String statementName = mapperInterface.getName() + "." + method.getName();
       MappedStatement ms = null;
       if (configuration.hasStatement(statementName)) {
+          //从configuration中获取MappedStatement
         ms = configuration.getMappedStatement(statementName);
       } else if (!mapperInterface.equals(method.getDeclaringClass())) { // issue #35
         String parentStatementName = method.getDeclaringClass().getName() + "." + method.getName();
@@ -242,14 +249,20 @@ public class MapperMethod {
 
   public static class MethodSignature {
 
+    //返回参数是否为集合或者数组
     private final boolean returnsMany;
+    //返回参数是否为map
     private final boolean returnsMap;
+    //返回值是否为空
     private final boolean returnsVoid;
+    //返回值是否为游标类型
     private final boolean returnsCursor;
+    //返回值类型
     private final Class<?> returnType;
     private final String mapKey;
     private final Integer resultHandlerIndex;
     private final Integer rowBoundsIndex;
+    //方法参数解析器
     private final ParamNameResolver paramNameResolver;
 
     public MethodSignature(Configuration configuration, Class<?> mapperInterface, Method method) {

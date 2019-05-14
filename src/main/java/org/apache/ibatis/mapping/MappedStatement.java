@@ -30,6 +30,7 @@ import org.apache.ibatis.session.Configuration;
 
 /**
  * @author Clinton Begin
+ * //保存sql语句的数据结构
  */
 public final class MappedStatement {
 
@@ -38,14 +39,14 @@ public final class MappedStatement {
   private String id;
   private Integer fetchSize;
   private Integer timeout;
-  private StatementType statementType;
+  private StatementType statementType;//有三种类型。默认PREPARED，很少修改
   private ResultSetType resultSetType;
-  private SqlSource sqlSource;
-  private Cache cache;
+  private SqlSource sqlSource;//sql语句信息，是一个接口，通过方法返回BoundSql，BoundSql是sql语句
+  private Cache cache; //二级缓存
   private ParameterMap parameterMap;
   private List<ResultMap> resultMaps;
   private boolean flushCacheRequired;
-  private boolean useCache;
+  private boolean useCache; //是否使用缓存
   private boolean resultOrdered;
   private SqlCommandType sqlCommandType;
   private KeyGenerator keyGenerator;

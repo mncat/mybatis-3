@@ -27,24 +27,26 @@ import org.apache.ibatis.type.TypeHandlerRegistry;
 
 /**
  * @author Clinton Begin
+ * 用来保存ResultMap里面的信息的数据结构
  */
 public class ResultMapping {
 
-  private Configuration configuration;
+  private Configuration configuration;//引用configuration对象
+  //ResultMap节点的property，column，javaType，jdbcType等属性
   private String property;
   private String column;
   private Class<?> javaType;
   private JdbcType jdbcType;
-  private TypeHandler<?> typeHandler;
-  private String nestedResultMapId;
-  private String nestedQueryId;
+  private TypeHandler<?> typeHandler;//转换器，很少配置，用在不常用的数据转换类型
+  private String nestedResultMapId;//嵌套结果
+  private String nestedQueryId;//嵌套查询
   private Set<String> notNullColumns;
-  private String columnPrefix;
-  private List<ResultFlag> flags;
+  private String columnPrefix;//查询前缀
+  private List<ResultFlag> flags;//标志
   private List<ResultMapping> composites;
   private String resultSet;
   private String foreignColumn;
-  private boolean lazy;
+  private boolean lazy;//延迟加载
 
   ResultMapping() {
   }
