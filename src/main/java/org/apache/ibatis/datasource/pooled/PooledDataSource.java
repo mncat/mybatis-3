@@ -38,17 +38,25 @@ public class PooledDataSource implements DataSource {
 
     private final PoolState state = new PoolState(this);
 
+    //真正用于创建连接的数据源
     private final UnpooledDataSource dataSource;
 
     // OPTIONAL CONFIGURATION FIELDS
+    //最大活跃连接数
     protected int poolMaximumActiveConnections = 10;
+    //最大空闲连接数
     protected int poolMaximumIdleConnections = 5;
+    //最大使用时长
     protected int poolMaximumCheckoutTime = 20000;
+    //无法获取连接时最大等待时长
     protected int poolTimeToWait = 20000;
+    //测试连接是否有效的sql语句
     protected String poolPingQuery = "NO PING QUERY SET";
+    //是否允许测试连接
     protected boolean poolPingEnabled = false;
+    //当连接在一段时间未被使用，才允许测试连接是否有效
     protected int poolPingConnectionsNotUsedFor = 0;
-
+    //标示一个连接池，由一个连接池创建的连接都会带上这个
     private int expectedConnectionTypeCode;
 
     public PooledDataSource() {
@@ -328,7 +336,7 @@ public class PooledDataSource implements DataSource {
 
         synchronized (state) {
             //加锁，PooledDataSource是线程安全的数据库连接池
-            //1.如果连接池已经包含这个连接，则先移除
+            //1.如果活跃的连接池包含这个连接，则先移除
             state.activeConnections.remove(conn);
             //2.连接合法才有继续操作的必要
             if (conn.isValid()) {
@@ -339,7 +347,7 @@ public class PooledDataSource implements DataSource {
                     if (!conn.getRealConnection().getAutoCommit()) {
                         conn.getRealConnection().rollback();
                     }
-                    //将连接加到空闲连接里面去
+                    //将连接加到空闲连接里面去，其实并没有创建新的连接，而是基于这个连接创建了一个包装的连接对象
                     PooledConnection newConn = new PooledConnection(conn.getRealConnection(), this);
                     state.idleConnections.add(newConn);
                     //修改这个连接里面的状态变量
@@ -411,7 +419,7 @@ public class PooledDataSource implements DataSource {
                     } else {
                         //4.没有空闲连接，如果活跃的连接处已经大于允许活跃的连接数上限，那么就不允许创建新的连接了
                         // Cannot create new connection
-                        //5.不允许创建，那么就从活跃连接队列中拿一个连接
+                        //5.不允许创建，那么就从活跃连接队列中拿一个连接（第一个超时了就可以拿出来使用，第一个没超时后面的更加不会超时了）
                         PooledConnection oldestActiveConnection = state.activeConnections.get(0);
                         //6.获取这个拿到的连接上一次检查到现在所经过的时间
                         long longestCheckoutTime = oldestActiveConnection.getCheckoutTime();
@@ -420,8 +428,8 @@ public class PooledDataSource implements DataSource {
                             // Can claim overdue connection  8.连接已经过期，那么把这个连接从活跃队列中移除
                             //9.修改相关的状态变量
                             state.claimedOverdueConnectionCount++;
-                            state.accumulatedCheckoutTimeOfOverdueConnections += longestCheckoutTime;
-                            state.accumulatedCheckoutTime += longestCheckoutTime;
+                            state.accumulatedCheckoutTimeOfOverdueConnections += longestCheckoutTime;//累计超时时间增加
+                            state.accumulatedCheckoutTime += longestCheckoutTime;//累计使用时间增加
                             //10.活跃队列移除对应的连接
                             state.activeConnections.remove(oldestActiveConnection);
                             //11.如果连接还有事物尚未提交，则回滚，这里条件的判断意思是连接没有开启自动提交，说明是手动提交模式，则帮他回滚这个事物
@@ -432,7 +440,8 @@ public class PooledDataSource implements DataSource {
                                     log.debug("Bad connection. Could not roll back");
                                 }
                             }
-                            //12.从拿到的连接里面获取到里面的真实的连接对象，再把这个真实的对象包装为一个PooledConnection(每个PooledConnection里面都包装了一个真正的连接对象)
+                            //12.从拿到的连接里面获取到里面的真实的连接对象，再把这个真实的对象包装为一个PooledConnection
+                            // (每个PooledConnection里面都包装了一个真正的连接对象)
                             conn = new PooledConnection(oldestActiveConnection.getRealConnection(), this);
                             //13.销毁之前的PooledConnection
                             oldestActiveConnection.invalidate();
@@ -444,14 +453,14 @@ public class PooledDataSource implements DataSource {
                             // Must wait
                             try {
                                 if (!countedWait) {
-                                    state.hadToWaitCount++;
+                                    state.hadToWaitCount++;//连接池等待次数加1
                                     countedWait = true;
                                 }
                                 if (log.isDebugEnabled()) {
                                     log.debug("Waiting as long as " + poolTimeToWait + " milliseconds for connection.");
                                 }
                                 long wt = System.currentTimeMillis();
-                                state.wait(poolTimeToWait);
+                                state.wait(poolTimeToWait);//阻塞指定等待时间
                                 //15.累加等待时间
                                 state.accumulatedWaitTime += System.currentTimeMillis() - wt;
                             } catch (InterruptedException e) {
