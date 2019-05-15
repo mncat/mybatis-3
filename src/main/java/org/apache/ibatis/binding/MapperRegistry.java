@@ -34,6 +34,7 @@ import java.util.Set;
 public class MapperRegistry {
 
   private final Configuration config;
+  //记录了Mapper接口里面的方法和MapperProxyFactory之间的关联关系，实际上就是记录了接口和动态代理方法之间的关系
   private final Map<Class<?>, MapperProxyFactory<?>> knownMappers = new HashMap<Class<?>, MapperProxyFactory<?>>();
 
   public MapperRegistry(Configuration config) {

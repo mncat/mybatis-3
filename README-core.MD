@@ -17,15 +17,17 @@
 工程模式：创建和使用分离，客户端不关心也不参与创建的过程，不关心细节。
 
 
-读取配置第一步：XMLConfiguration读取主配置文件，将配置设置到Configuration对象
-读取配置第二步：XMLMapperBuilder来解析Mapper.xml映射文件
-读取配置第三步：XMLStatementBuilder来解析
+读取配置第一步：XMLConfiguration读取主配置文件，将配置设置到Configuration对象，自己做，没有秘书
+读取配置第二步：XMLMapperBuilder来解析Mapper.xml映射文件，有秘书
+读取配置第三步：XMLStatementBuilder来解析。有秘书
 三个火枪手完成xml的解析，最终将配置放到configuration里面，这个对象是在他们的共同父类BaseBuilder里面定义的
 这里的建造者模式可以理解为有多个建造者协作来完成Configuration对象的创建，但是表面并没有采用流式编程，只有建造者模式
 的灵魂，没有外表
 CacheBuilder类是正儿八经的建造者模式。
 MapperBuilderAssistant类很重要，协助创建对象，里面有很多的建造者模式实现。
 CacheBuilder.setStandardDecorators：这里的代码很经典，为缓存添加各种装饰器的功能
+
+MappedStatement：保存sql语句的数据结构
 ### 2.2 优点 
 
 ### 2.3 缺点 
