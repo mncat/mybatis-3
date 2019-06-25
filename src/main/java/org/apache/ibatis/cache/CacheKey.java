@@ -88,7 +88,7 @@ public class CacheKey implements Cloneable, Serializable {
     /**
      * 判断2个key相等的逻辑
      * 1.是一个对象，那么返回true
-     * 2.被比较对象类型部署CacheKey，直接返回false
+     * 2.被比较对象类型不是CacheKey，直接返回false
      * 3.hashcode不一样，返回false
      * 4.checksum不一样，返回false
      * 5.count不一样，返回false
