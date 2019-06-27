@@ -1,17 +1,17 @@
 /**
- * Copyright 2009-2015 the original author or authors.
- * <p>
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * <p>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *    Copyright 2009-2019 the original author or authors.
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
  */
 package org.apache.ibatis.session.defaults;
 
@@ -29,7 +29,9 @@ import java.sql.SQLException;
 
 /**
  * @author Clinton Begin
- */
+ * DefaultSqlSessionFactory是SqlSessionFactory的默认实现，由它来创建SqlSession，
+ * 创建sqlSession有2种方式，从数据源获取或者从数据库连接获取，具体看代码注释
+ * */
 public class DefaultSqlSessionFactory implements SqlSessionFactory {
 
     private final Configuration configuration;
@@ -84,13 +86,14 @@ public class DefaultSqlSessionFactory implements SqlSessionFactory {
     }
 
     /**
-     * 从数据源获取SqlSession
+     * 方式一：从数据源获取SqlSession
      * */
     private SqlSession openSessionFromDataSource(ExecutorType execType, TransactionIsolationLevel level, boolean autoCommit) {
         Transaction tx = null;
         try {
             final Environment environment = configuration.getEnvironment();
             final TransactionFactory transactionFactory = getTransactionFactoryFromEnvironment(environment);
+            //1.从数据源DataSource获取tx，这是和方式二最大的区别，其他的都差不多
             tx = transactionFactory.newTransaction(environment.getDataSource(), level, autoCommit);
             final Executor executor = configuration.newExecutor(tx, execType);
             return new DefaultSqlSession(configuration, executor, autoCommit);
@@ -103,10 +106,11 @@ public class DefaultSqlSessionFactory implements SqlSessionFactory {
     }
 
     /**
-     * 从数据库连接获取SqlSession
+     * 方式二：从数据库连接获取SqlSession
      * */
     private SqlSession openSessionFromConnection(ExecutorType execType, Connection connection) {
         try {
+            //1.确认是否自动提交
             boolean autoCommit;
             try {
                 autoCommit = connection.getAutoCommit();
@@ -117,6 +121,7 @@ public class DefaultSqlSessionFactory implements SqlSessionFactory {
             }
             final Environment environment = configuration.getEnvironment();
             final TransactionFactory transactionFactory = getTransactionFactoryFromEnvironment(environment);
+            //2.从一个连接connection获取tx，这是和方式一最大的区别，其他的都差不多
             final Transaction tx = transactionFactory.newTransaction(connection);
             final Executor executor = configuration.newExecutor(tx, execType);
             return new DefaultSqlSession(configuration, executor, autoCommit);
@@ -143,5 +148,4 @@ public class DefaultSqlSessionFactory implements SqlSessionFactory {
             }
         }
     }
-
 }

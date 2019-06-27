@@ -1,5 +1,5 @@
 /**
- *    Copyright 2009-2015 the original author or authors.
+ *    Copyright 2009-2019 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ import org.apache.ibatis.io.Resources;
  * @author Eduardo Macarron
  */
 public class UnpooledDataSource implements DataSource {
-  
+
   private ClassLoader driverClassLoader;
   private Properties driverProperties;
   private static Map<String, Driver> registeredDrivers = new ConcurrentHashMap<String, Driver>();
@@ -88,6 +88,7 @@ public class UnpooledDataSource implements DataSource {
     this.driverProperties = driverProperties;
   }
 
+  //重写的DataSource接口的获取连接的方法
   @Override
   public Connection getConnection() throws SQLException {
     return doGetConnection(username, password);
@@ -182,6 +183,7 @@ public class UnpooledDataSource implements DataSource {
     this.defaultTransactionIsolationLevel = defaultTransactionIsolationLevel;
   }
 
+  //根据账号密码获取连接
   private Connection doGetConnection(String username, String password) throws SQLException {
     Properties props = new Properties();
     if (driverProperties != null) {
@@ -193,24 +195,30 @@ public class UnpooledDataSource implements DataSource {
     if (password != null) {
       props.setProperty("password", password);
     }
+    //根据属性对象获取连接
     return doGetConnection(props);
   }
 
-  //获取数据库连接
+  //根据属性对象获取连接
   private Connection doGetConnection(Properties properties) throws SQLException {
+    //1.初始化驱动
     initializeDriver();
+    //2.获取一个连接
     Connection connection = DriverManager.getConnection(url, properties);
-    //设置事物是否自动提交，事物隔离级别
+    //3.配置连接；里面主要是根据设置来配置事物是否自动提交和事物隔离级别，这2个配置是UnpooledDataSource的2个属性，
+    //可以set设置，这些设置应该是在UnpooledDataSourceFactory的setProperties中设置的
     configureConnection(connection);
     return connection;
   }
 
+  //初始化驱动的方法
   private synchronized void initializeDriver() throws SQLException {
-    if (!registeredDrivers.containsKey(driver)) {
+        //1.已经注册过的就不需要再注册了
+      if (!registeredDrivers.containsKey(driver)) {
       Class<?> driverType;
       try {
         if (driverClassLoader != null) {
-            //这里和JDBC的代码是一样的
+            //2.这里和JDBC的代码是一样的
           driverType = Class.forName(driver, true, driverClassLoader);
         } else {
           driverType = Resources.classForName(driver);
@@ -219,6 +227,7 @@ public class UnpooledDataSource implements DataSource {
         // http://www.kfu.com/~nsayer/Java/dyn-jdbc.html
         Driver driverInstance = (Driver)driverType.newInstance();
         DriverManager.registerDriver(new DriverProxy(driverInstance));
+        //3.放到注册中心，下一次就不需要再注册了
         registeredDrivers.put(driver, driverInstance);
       } catch (Exception e) {
         throw new SQLException("Error setting driver on UnpooledDataSource. Cause: " + e);

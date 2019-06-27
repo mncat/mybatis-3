@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 
 /**
  * @author Eduardo Macarron
+ * 适配者，将目标接口Log的方法调用转换为Slf4jLoggerImpl自身log实例的方法调用
  */
 class Slf4jLoggerImpl implements Log {
 

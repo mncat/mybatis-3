@@ -80,11 +80,16 @@ public abstract class BaseStatementHandler implements StatementHandler {
     return parameterHandler;
   }
 
+  /**
+   * StatementHandler创建Statement的逻辑都在这里，StatementHandler的其他子类并没有实现这个方法，直接从BaseStatementHandler
+   * 继承获得到
+   * */
   @Override
   public Statement prepare(Connection connection, Integer transactionTimeout) throws SQLException {
     ErrorContext.instance().sql(boundSql.getSql());
     Statement statement = null;
     try {
+      //创建Statement主流程
       statement = instantiateStatement(connection);
       setStatementTimeout(statement, transactionTimeout);
       setFetchSize(statement);

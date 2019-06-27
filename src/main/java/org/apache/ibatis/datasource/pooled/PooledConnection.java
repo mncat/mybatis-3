@@ -257,13 +257,13 @@ class PooledConnection implements InvocationHandler {
      * @see java.lang.reflect.InvocationHandler#invoke(Object, java.lang.reflect.Method, Object[])
      * 总结代理模式对真正的连接对象所做的增强：
      * 1.如果是调用close方法，那么就把连接回收
-     * 2.如果调用的不是close，并且是自己第一的方法(不是Object类定义的方法)，那么就在调用这个方法之前检查下连接是否合法，合法再调用这个方法，不合法就抛异常
+     * 2.如果调用的不是close，并且是自己定义的方法(不是Object类定义的方法)，那么就在调用这个方法之前检查下连接是否合法，合法再调用这个方法，不合法就抛异常
      * 3.如果方法是Object定义的，那么就不检查是否合法，直接调用
      */
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         String methodName = method.getName();
-        //1.对于PooledDataSource，如果调用了close方法，那么就回收该连接，并不是直接关闭
+        //1.对于PooledDataSource，如果realConnection调用了close方法，那么就回收该连接，并不是直接关闭
         if (CLOSE.hashCode() == methodName.hashCode() && CLOSE.equals(methodName)) {
             dataSource.pushConnection(this);
             return null;

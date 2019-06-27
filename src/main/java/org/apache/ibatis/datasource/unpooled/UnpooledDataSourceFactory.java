@@ -26,12 +26,16 @@ import java.util.Properties;
 /**
  * @author Clinton Begin
  * 工厂模式，创建UnpooledDataSource的工厂，工厂继承DataSourceFactory
+ * 整体逻辑和创建PooledDataSource是一样的，因此PooledDataSource直接继承复用
  */
 public class UnpooledDataSourceFactory implements DataSourceFactory {
 
+    //配置前缀
     private static final String DRIVER_PROPERTY_PREFIX = "driver.";
+    //配置前缀长度
     private static final int DRIVER_PROPERTY_PREFIX_LENGTH = DRIVER_PROPERTY_PREFIX.length();
 
+    //Factory内部包含的数据源，可以是UnpooledDataSource或者PooledDataSource
     protected DataSource dataSource;
 
     /**
@@ -47,32 +51,34 @@ public class UnpooledDataSourceFactory implements DataSourceFactory {
     @Override
     public void setProperties(Properties properties) {
         Properties driverProperties = new Properties();
+        //1.获取dataSource的MetaObject，便于修改属性，这里可以参考反射模块
         MetaObject metaDataSource = SystemMetaObject.forObject(dataSource);
+        //2.遍历所有属性
         for (Object key : properties.keySet()) {
             String propertyName = (String) key;
-            //1.遍历设置的属性，如果属性以driver.开头，那么就设置到driverProperties里面去
+            //3.如果属性以driver.开头，那么就设置到driverProperties属性对象里面去
             if (propertyName.startsWith(DRIVER_PROPERTY_PREFIX)) {
                 String value = properties.getProperty(propertyName);
                 driverProperties.setProperty(propertyName.substring(DRIVER_PROPERTY_PREFIX_LENGTH), value);
             } else if (metaDataSource.hasSetter(propertyName)) {
-                //2.如果不是以driver.开头，就检查这个属性是否需要被设置，如果需要就进一步去设置，反之就需要抛异常
-                //底层跟进发现调用的是org.apache.ibatis.reflection.Reflector.hasSetter方法，方法里面判断setMethods.keySet().contains(propertyName);
-                //由此判断这里是判断propertyName这个属性是否允许被设置，猜测这里前期应该有一个步骤将允许的属性加到setMethods这个Map集合里面
+                //4.如果不是以driver.开头，就检查是否有这个属性的setter方法，如果有就进一步去设置，没有就需要抛异常，底层由反射模块封装实现
                 String value = (String) properties.get(propertyName);
+                //5.进行必要的属性值类型转换，比如转换成整型或者Long类型等
                 Object convertedValue = convertValue(metaDataSource, propertyName, value);
-                //设置值，key不变，但是value需要进行转换
+                //6.设置值，key不变，但是value是转换后的
                 metaDataSource.setValue(propertyName, convertedValue);
             } else {
-                //3.未知属性则抛异常
+                //3.前缀不对也没有set方法，属于未知属性，抛异常
                 throw new DataSourceException("Unknown DataSource property: " + propertyName);
             }
         }
-        //4.将处理后得到的属性对象设置到metaDataSource
+        //4.将处理后得到的属性对象设置到UnpooledDataSource的driverProperties属性
         if (driverProperties.size() > 0) {
             metaDataSource.setValue("driverProperties", driverProperties);
         }
     }
 
+    //获取数据源
     @Override
     public DataSource getDataSource() {
         return dataSource;

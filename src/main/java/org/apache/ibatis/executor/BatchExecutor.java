@@ -42,7 +42,9 @@ public class BatchExecutor extends BaseExecutor {
 
   public static final int BATCH_UPDATE_RETURN_VALUE = Integer.MIN_VALUE + 1002;
 
+  //保存批量执行的Statement
   private final List<Statement> statementList = new ArrayList<Statement>();
+  //保存批量执行的BatchResult
   private final List<BatchResult> batchResultList = new ArrayList<BatchResult>();
   private String currentSql;
   private MappedStatement currentStatement;
@@ -58,33 +60,45 @@ public class BatchExecutor extends BaseExecutor {
     final BoundSql boundSql = handler.getBoundSql();
     final String sql = boundSql.getSql();
     final Statement stmt;
+      //1.判断当前使用sql和statement是否是上一次的statement和sql
     if (sql.equals(currentSql) && ms.equals(currentStatement)) {
+      //2.如果是则取出
       int last = statementList.size() - 1;
       stmt = statementList.get(last);
       applyTransactionTimeout(stmt);
+        //使用StatementHandler处理占位符
      handler.parameterize(stmt);//fix Issues 322
       BatchResult batchResult = batchResultList.get(last);
+      //batchResult里面添加批量执行的参数列表
       batchResult.addParameterObject(parameterObject);
     } else {
+        //3.如果不是则创建一个Statement
       Connection connection = getConnection(ms.getStatementLog());
       stmt = handler.prepare(connection, transaction.getTimeout());
+        //使用StatementHandler处理占位符
       handler.parameterize(stmt);    //fix Issues 322
+        //记录下当前的sql和Statement,下一个语句会对比这两个对象
       currentSql = sql;
       currentStatement = ms;
+      //将Statement添加到list
       statementList.add(stmt);
       batchResultList.add(new BatchResult(ms, sql, parameterObject));
     }
   // handler.parameterize(stmt);
     handler.batch(stmt);
+    //返回值是-2147482646，据说可以防止无限循环
     return BATCH_UPDATE_RETURN_VALUE;
   }
 
+  /**
+   * batchExecutor查询实现
+   * */
   @Override
   public <E> List<E> doQuery(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql)
       throws SQLException {
     Statement stmt = null;
     try {
-      flushStatements();
+      flushStatements();//会调用doFlushStatements方法
       Configuration configuration = ms.getConfiguration();
       StatementHandler handler = configuration.newStatementHandler(wrapper, ms, parameterObject, rowBounds, resultHandler, boundSql);
       Connection connection = getConnection(ms.getStatementLog());

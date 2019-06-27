@@ -1,5 +1,5 @@
 /**
- *    Copyright 2009-2015 the original author or authors.
+ *    Copyright 2009-2019 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -66,11 +66,13 @@ public class DefaultSqlSession implements SqlSession {
     this(configuration, executor, false);
   }
 
+  // -> selectOne(String statement, Object parameter)
   @Override
   public <T> T selectOne(String statement) {
     return this.<T>selectOne(statement, null);
   }
 
+    // -> selectList(statement, parameter)
   @Override
   public <T> T selectOne(String statement, Object parameter) {
     // Popular vote was to return null on 0 results and throw exception on too many.
@@ -84,19 +86,24 @@ public class DefaultSqlSession implements SqlSession {
     }
   }
 
+    // -> selectMap(String statement, Object parameter, String mapKey, RowBounds rowBounds)
   @Override
   public <K, V> Map<K, V> selectMap(String statement, String mapKey) {
     return this.selectMap(statement, null, mapKey, RowBounds.DEFAULT);
   }
 
+    // -> selectMap(String statement, Object parameter, String mapKey, RowBounds rowBounds)
   @Override
   public <K, V> Map<K, V> selectMap(String statement, Object parameter, String mapKey) {
     return this.selectMap(statement, parameter, mapKey, RowBounds.DEFAULT);
   }
 
+    // -> selectList(String statement, Object parameter, RowBounds rowBounds)
   @Override
   public <K, V> Map<K, V> selectMap(String statement, Object parameter, String mapKey, RowBounds rowBounds) {
+      //selectMap底层走的还是selectList(String statement, Object parameter, RowBounds rowBounds)方法
     final List<? extends V> list = selectList(statement, parameter, rowBounds);
+    //因为是按照resultMap的形式返回，因此拿到结果集之后，需要对结果进行处理，通过mapResultHandler处理
     final DefaultMapResultHandler<K, V> mapResultHandler = new DefaultMapResultHandler<K, V>(mapKey,
         configuration.getObjectFactory(), configuration.getObjectWrapperFactory(), configuration.getReflectorFactory());
     final DefaultResultContext<V> context = new DefaultResultContext<V>();
@@ -104,6 +111,7 @@ public class DefaultSqlSession implements SqlSession {
       context.nextResultObject(o);
       mapResultHandler.handleResult(context);
     }
+    //返回处理后的结果集
     return mapResultHandler.getMappedResults();
   }
 
@@ -136,15 +144,20 @@ public class DefaultSqlSession implements SqlSession {
     return this.selectList(statement, null);
   }
 
+  // -> selectList(String statement, Object parameter, RowBounds rowBounds) 151
   @Override
   public <E> List<E> selectList(String statement, Object parameter) {
     return this.selectList(statement, parameter, RowBounds.DEFAULT);
   }
 
+  // -> 上面的6个查询方法最后都会走到这里，
+  // selectList(String statement, Object parameter, RowBounds rowBounds)是所
+  // 有的查询最终会走的方法
   @Override
   public <E> List<E> selectList(String statement, Object parameter, RowBounds rowBounds) {
     try {
       MappedStatement ms = configuration.getMappedStatement(statement);
+      //查询最底层走的是Executor的query方法
       return executor.query(ms, wrapCollection(parameter), rowBounds, Executor.NO_RESULT_HANDLER);
     } catch (Exception e) {
       throw ExceptionFactory.wrapException("Error querying database.  Cause: " + e, e);

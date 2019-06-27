@@ -29,6 +29,7 @@ import org.apache.ibatis.transaction.Transaction;
 
 /**
  * @author Clinton Begin
+ * 顶层接口，定义了数据库操作的基本方法，
  */
 public interface Executor {
 

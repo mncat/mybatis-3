@@ -1,5 +1,5 @@
 /**
- *    Copyright 2009-2016 the original author or authors.
+ *    Copyright 2009-2019 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -38,7 +38,12 @@ import java.util.*;
  * @author Clinton Begin
  * @author Eduardo Macarron
  * @author Lasse Voss
- * Mapper映射方法
+ * MapperMethod封装了Mapper接口中的方法信息和对应的SQL语句信息，它是Mapper接口与映射文件中的SQL语句之间
+ * 的桥梁,他不记录任何状态信息，因此可以在多个代理对象之间共享，包含下面的属性：
+ * SqlCommand：从configuration中获取方法的命名空间，方法名和SQL类型
+ * MethodSignature：封装mapper映射文件中的接口方法的信息，包括入参和返回值等
+ * ParamNameResolver：解析映射文件接口的入参
+ *
  */
 public class MapperMethod {
 
@@ -205,7 +210,7 @@ public class MapperMethod {
 
   public static class SqlCommand {
 
-      //sql的名称，命名空间+方法名称
+    //sql的名称，命名空间+方法名称
     private final String name;
     //sql语句的类型
     private final SqlCommandType type;
@@ -230,8 +235,9 @@ public class MapperMethod {
           throw new BindingException("Invalid bound statement (not found): " + statementName);
         }
       } else {
-        name = ms.getId();
-        type = ms.getSqlCommandType();
+        //如果mappedStatement不为空
+        name = ms.getId();//获取sql的名称，命名空间+方法名称
+        type = ms.getSqlCommandType();//获取sql语句的类型
         if (type == SqlCommandType.UNKNOWN) {
           throw new BindingException("Unknown execution method for: " + name);
         }

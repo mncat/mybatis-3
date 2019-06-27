@@ -36,6 +36,7 @@ public class RoutingStatementHandler implements StatementHandler {
 
   private final StatementHandler delegate;
 
+  //构造方法，在构造方法总实例化内部的delegate，然后继承自StatementHandler的方法，实际上都是调用delegate来执行，自己就像一个路由角色
   public RoutingStatementHandler(Executor executor, MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql) {
 
     switch (ms.getStatementType()) {
@@ -54,6 +55,7 @@ public class RoutingStatementHandler implements StatementHandler {
 
   }
 
+  //然后继承自StatementHandler的方法实际上都是调用delegate来执行
   @Override
   public Statement prepare(Connection connection, Integer transactionTimeout) throws SQLException {
     return delegate.prepare(connection, transactionTimeout);
