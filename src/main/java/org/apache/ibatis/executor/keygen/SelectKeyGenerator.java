@@ -29,6 +29,18 @@ import org.apache.ibatis.session.RowBounds;
 /**
  * @author Clinton Begin
  * @author Jeff Butler
+ * SelectKeyGenerator对应数据库不提供自增主键的场景，如在Oracle中并不提供自增组件，提供了Sequence主键，
+ * 那么主键会写其实就是查询最近一次插入的主键id，对应的配置如下：
+ * <insert id="save">
+ * 	<selectKey resultType="int" keyProperty="id" order="BEFORE">
+ * 		 SELECT LAST_INSERT_ID() AS id
+ * 	</selectKey>
+ * 	insert into tbl_log (log_type,log_info) values
+ * 	    (#{logType},#{logInfo})
+ * </insert>
+ *
+ * 就是通过执行这里的select last_insert_id() as id获得结果，并赋值给id，
+ * SelectKeyGenerator实现的就是该逻辑
  */
 public class SelectKeyGenerator implements KeyGenerator {
   
@@ -55,6 +67,9 @@ public class SelectKeyGenerator implements KeyGenerator {
     }
   }
 
+  /**
+   * 执行获取主键的方法
+   * */
   private void processGeneratedKeys(Executor executor, MappedStatement ms, Object parameter) {
     try {
       if (parameter != null && keyStatement != null && keyStatement.getKeyProperties() != null) {
@@ -64,7 +79,9 @@ public class SelectKeyGenerator implements KeyGenerator {
         if (keyProperties != null) {
           // Do not close keyExecutor.
           // The transaction will be closed by parent executor.
+          //1.获得Executor
           Executor keyExecutor = configuration.newExecutor(executor.getTransaction(), ExecutorType.SIMPLE);
+          //2.执行获得主键的sql语句，MappedStatement里面包含语句信息，parameter包含参数信息，不需要处理结果集的映射
           List<Object> values = keyExecutor.query(keyStatement, parameter, RowBounds.DEFAULT, Executor.NO_RESULT_HANDLER);
           if (values.size() == 0) {
             throw new ExecutorException("SelectKey returned no data.");            
@@ -73,6 +90,7 @@ public class SelectKeyGenerator implements KeyGenerator {
           } else {
             MetaObject metaResult = configuration.newMetaObject(values.get(0));
             if (keyProperties.length == 1) {
+                //3. 设值
               if (metaResult.hasGetter(keyProperties[0])) {
                 setValue(metaParam, keyProperties[0], metaResult.getValue(keyProperties[0]));
               } else {
@@ -81,6 +99,7 @@ public class SelectKeyGenerator implements KeyGenerator {
                 setValue(metaParam, keyProperties[0], values.get(0));
               }
             } else {
+                //4.如果有多个返回参数则需要循环赋值
               handleMultipleProperties(keyProperties, metaParam, metaResult);
             }
           }

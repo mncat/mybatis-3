@@ -66,7 +66,7 @@ public class BatchExecutor extends BaseExecutor {
       int last = statementList.size() - 1;
       stmt = statementList.get(last);
       applyTransactionTimeout(stmt);
-        //使用StatementHandler处理占位符
+        //3.StatementHandler占位符赋值
      handler.parameterize(stmt);//fix Issues 322
       BatchResult batchResult = batchResultList.get(last);
       //batchResult里面添加批量执行的参数列表
@@ -75,7 +75,7 @@ public class BatchExecutor extends BaseExecutor {
         //3.如果不是则创建一个Statement
       Connection connection = getConnection(ms.getStatementLog());
       stmt = handler.prepare(connection, transaction.getTimeout());
-        //使用StatementHandler处理占位符
+        //  StatementHandler占位符赋值
       handler.parameterize(stmt);    //fix Issues 322
         //记录下当前的sql和Statement,下一个语句会对比这两个对象
       currentSql = sql;
@@ -85,6 +85,7 @@ public class BatchExecutor extends BaseExecutor {
       batchResultList.add(new BatchResult(ms, sql, parameterObject));
     }
   // handler.parameterize(stmt);
+      //不管是那种逻辑，这个语句都要执行，因此都使用batch方法处理
     handler.batch(stmt);
     //返回值是-2147482646，据说可以防止无限循环
     return BATCH_UPDATE_RETURN_VALUE;
@@ -98,7 +99,7 @@ public class BatchExecutor extends BaseExecutor {
       throws SQLException {
     Statement stmt = null;
     try {
-      flushStatements();//会调用doFlushStatements方法
+      flushStatements();//会调用doFlushStatements方法刷新两个集合
       Configuration configuration = ms.getConfiguration();
       StatementHandler handler = configuration.newStatementHandler(wrapper, ms, parameterObject, rowBounds, resultHandler, boundSql);
       Connection connection = getConnection(ms.getStatementLog());
@@ -121,6 +122,10 @@ public class BatchExecutor extends BaseExecutor {
     return handler.<E>queryCursor(stmt);
   }
 
+
+  /**
+   * 刷新Statement，记录执行次数
+   */
   @Override
   public List<BatchResult> doFlushStatements(boolean isRollback) throws SQLException {
     try {
@@ -128,20 +133,27 @@ public class BatchExecutor extends BaseExecutor {
       if (isRollback) {
         return Collections.emptyList();
       }
+      //1.如果进行了批量处理，size不为0
       for (int i = 0, n = statementList.size(); i < n; i++) {
         Statement stmt = statementList.get(i);
         applyTransactionTimeout(stmt);
         BatchResult batchResult = batchResultList.get(i);
         try {
+          //2.执行批处理，并跟新处理后的结果数组
           batchResult.setUpdateCounts(stmt.executeBatch());
+          //3.获取MappedStatement，它是保存sql语句的数据结构
           MappedStatement ms = batchResult.getMappedStatement();
+          //4.获取参数
           List<Object> parameterObjects = batchResult.getParameterObjects();
+          //5.获取KeyGenerator，处理主键会写
           KeyGenerator keyGenerator = ms.getKeyGenerator();
           if (Jdbc3KeyGenerator.class.equals(keyGenerator.getClass())) {
+              //6.1 Jdbc3KeyGenerator的情况
             Jdbc3KeyGenerator jdbc3KeyGenerator = (Jdbc3KeyGenerator) keyGenerator;
             jdbc3KeyGenerator.processBatch(ms, stmt, parameterObjects);
           } else if (!NoKeyGenerator.class.equals(keyGenerator.getClass())) { //issue #141
-            for (Object parameter : parameterObjects) {
+            //6.2 SelectKeyGenerator的情况
+              for (Object parameter : parameterObjects) {
               keyGenerator.processAfter(this, ms, stmt, parameter);
             }
           }
@@ -159,6 +171,7 @@ public class BatchExecutor extends BaseExecutor {
           }
           throw new BatchExecutorException(message.toString(), e, results, batchResult);
         }
+          //记录操作
         results.add(batchResult);
       }
       return results;
@@ -167,6 +180,7 @@ public class BatchExecutor extends BaseExecutor {
         closeStatement(stmt);
       }
       currentSql = null;
+      //刷新完毕要清除集合
       statementList.clear();
       batchResultList.clear();
     }
