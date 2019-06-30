@@ -64,6 +64,7 @@ import org.apache.ibatis.type.TypeHandlerRegistry;
  * @author Clinton Begin
  * @author Eduardo Macarron
  * @author Iwao AVE!
+ * 是ResultSetHandler的唯一实现类
  */
 public class DefaultResultSetHandler implements ResultSetHandler {
 
@@ -165,27 +166,38 @@ public class DefaultResultSetHandler implements ResultSetHandler {
 
   //
   // HANDLE RESULT SETS
+  //处理结果集的方法，在StatementHandler里面的query方法会调用该方法
   //
   @Override
   public List<Object> handleResultSets(Statement stmt) throws SQLException {
     ErrorContext.instance().activity("handling results").object(mappedStatement.getId());
 
+    //1.保存结果集对象
     final List<Object> multipleResults = new ArrayList<Object>();
 
     int resultSetCount = 0;
+    //2.Statment可能返回多个结果集对象，先处理第一个结果集
     ResultSetWrapper rsw = getFirstResultSet(stmt);
-
+    //3.将结果集转换需要知道转换规则，而记录和JavaBean的转换规则都在resultMap里面，这里获取resultMap，注意获取
+      // 的是全部的resultMap，是一个list
     List<ResultMap> resultMaps = mappedStatement.getResultMaps();
     int resultMapCount = resultMaps.size();
+    //4.结果集和转换规则均不能为空，否则抛异常
     validateResultMapsCount(rsw, resultMapCount);
+    //5.一个一个处理
     while (rsw != null && resultMapCount > resultSetCount) {
+      //6.获取当前结果集对应的resultMap(注意前面是全部的resultMap，这里是获取到自己需要的)
       ResultMap resultMap = resultMaps.get(resultSetCount);
+      //7.根据规则(resultMap)将结果集转换为Object列表,存到multipleResults
       handleResultSet(rsw, resultMap, multipleResults, null);
+      //8.获取下一个结果集
       rsw = getNextResultSet(stmt);
+      //9.清空nestedResultObjects对象
       cleanUpAfterHandlingResultSet();
       resultSetCount++;
     }
 
+    //获取多结果集。一般出现在存储过程中，不分析了...
     String[] resultSets = mappedStatement.getResultSets();
     if (resultSets != null) {
       while (rsw != null && resultSetCount < resultSets.length) {
