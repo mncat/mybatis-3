@@ -34,7 +34,8 @@ import org.apache.ibatis.transaction.Transaction;
 
 /**
  * 二级缓存实现
- *
+ * CachingExecutor使用装饰器模式实现二级缓存，内部持有真正的Executor对象(SimpleExecutor，ReuseExecutor或者BatchExecutor)
+ * 它继承Executor类，并重写了全部的Executor方法，内部调用对应Executor的方法，前后增加了一些缓存读取相关的逻辑
  * @author Clinton Begin
  * @author Eduardo Macarron
  */
@@ -93,25 +94,33 @@ public class CachingExecutor implements Executor {
     return delegate.queryCursor(ms, parameter, rowBounds);
   }
 
+  /**
+   * 查询的真正控制流程
+   * */
   @Override
   public <E> List<E> query(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql)
       throws SQLException {
     Cache cache = ms.getCache();
+    //1.先尝试读取缓存，缓存为空则直接走最后的BaseExecutor.query
     if (cache != null) {
+        //2.如果需要就清除缓存
       flushCacheIfRequired(ms);
+      //3.如果配置允许使用缓存，才访问缓存
       if (ms.isUseCache() && resultHandler == null) {
         ensureNoOutParams(ms, parameterObject, boundSql);
         @SuppressWarnings("unchecked")
-        //从二级缓存中获取数据
+        //4.从二级缓存中获取数据
         List<E> list = (List<E>) tcm.getObject(cache, key);
         if (list == null) {
-          //二级缓存为空，才会调用BaseExecutor.query
+          //5.二级缓存为空，才会调用BaseExecutor.query
           list = delegate.<E> query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
+          //6.查询到数据则放入缓存
           tcm.putObject(cache, key, list); // issue #578 and #116
         }
         return list;
       }
     }
+    //如果缓存为null，就走真正的Executor实现类的查询方法，(BaseExecutor.query)
     return delegate.<E> query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
   }
 
