@@ -1,5 +1,5 @@
 /**
- *    Copyright 2009-2015 the original author or authors.
+ *    Copyright 2009-2019 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -33,8 +33,7 @@ import org.apache.ibatis.session.RowBounds;
 import org.apache.ibatis.transaction.Transaction;
 
 /**
- * 二级缓存实现
- *
+ * 二级缓存实现,CachingExecutor实现二级缓存采用了扎装饰器模式，内部持有真正的Executor实现类(BatchExecutor、ReuseExecutor或者SimpleExecutor)
  * @author Clinton Begin
  * @author Eduardo Macarron
  */
