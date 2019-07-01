@@ -140,6 +140,7 @@ public class Configuration {
 
     //mapper接口的动态代理注册中心
     protected final MapperRegistry mapperRegistry = new MapperRegistry(this);
+    //插件链对象，保存所有插件
     protected final InterceptorChain interceptorChain = new InterceptorChain();
     //TypeHandler注册中心
     protected final TypeHandlerRegistry typeHandlerRegistry = new TypeHandlerRegistry();
@@ -524,6 +525,20 @@ public class Configuration {
         return MetaObject.forObject(object, objectFactory, objectWrapperFactory, reflectorFactory);
     }
 
+    /**
+     * 在创建ParameterHandler对象的时候，会调用interceptorChain.pluginAll来获取一个动态代理后的对象，实际返回的
+     * 是一个增强后的动态代理对象，不是一个最原始的ParameterHandler对象
+     * 这个代理对象描述如下：
+     * 1.代理对象是一个Plugin类的对象。从interceptorChain.pluginAll->interceptor.plugin->Plugin.wrap调用链跟踪下去可以看到
+     * 最后返回的是Proxy.newProxyInstance(type.getClassLoader(),interfaces, new Plugin(target, interceptor, signatureMap));
+     * 由此可以看出。
+     * 2.如果包含多个插件，这个代理对象是经过多层代理增强的。在pluginAll方法里面会依次遍历所有的插件，针对每个插件会生成一个增强的代理对象，
+     * 然后把这个代理对象交给下一个插件做增强，也就是有多层包装(有点像装饰器那种多层装饰的感觉)
+     * 3.假如没有插件，那么方法返回的就是原始对象，假如多个插件只有一部分对ParameterHandler需要增强，那么这个逻辑也会在plugin中进行处理，
+     * 并不是说几个插件就代理几次，会按照需要，这些信息在插件的Intercepts注解上会定义好
+     * 4.后面的其余三个对象原理也是一样。(ResultSetHandler,StatementHandler和Executor)
+     *
+     * */
     public ParameterHandler newParameterHandler(MappedStatement mappedStatement, Object parameterObject, BoundSql boundSql) {
         ParameterHandler parameterHandler = mappedStatement.getLang().createParameterHandler(mappedStatement, parameterObject, boundSql);
         parameterHandler = (ParameterHandler) interceptorChain.pluginAll(parameterHandler);

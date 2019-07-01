@@ -205,13 +205,23 @@ public class XMLConfigBuilder extends BaseBuilder {
     }
   }
 
+  /**
+   * 解析插件
+   * */
   private void pluginElement(XNode parent) throws Exception {
     if (parent != null) {
+        //1.遍历处理每个节点
       for (XNode child : parent.getChildren()) {
+          //2.获取interceptor插件名称，实际上是全限定类名
         String interceptor = child.getStringAttribute("interceptor");
+        //3.获取配置的属性
         Properties properties = child.getChildrenAsProperties();
+        //4.反射获取到这个类的实例
         Interceptor interceptorInstance = (Interceptor) resolveClass(interceptor).newInstance();
+        //5.给实例赋配置的属性值
         interceptorInstance.setProperties(properties);
+        //6.保存到Configuration中的插件链对象
+        //protected final InterceptorChain interceptorChain = new InterceptorChain();
         configuration.addInterceptor(interceptorInstance);
       }
     }
