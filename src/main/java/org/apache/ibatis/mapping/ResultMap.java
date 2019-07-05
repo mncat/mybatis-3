@@ -27,6 +27,12 @@ import org.apache.ibatis.session.Configuration;
 /**
  * @author Clinton Begin
  * ResultMap对应的数据结构，内部是使用ResultMapping保存
+ * <resultMap type="Employee" id="baseResultMapLazy">
+ *          <id column="id" property="id"/>
+ *          <result column="name" property="name"/>
+ *          <result column="age" property="age"/>
+ * </resultMap>
+ * 这里的列名id，name，column会被添加到mappedColumns属性中；
  */
 public class ResultMap {
   private String id;
@@ -36,6 +42,7 @@ public class ResultMap {
   private List<ResultMapping> idResultMappings;
   private List<ResultMapping> constructorResultMappings;
   private List<ResultMapping> propertyResultMappings;
+  //保存具有映射关系的数据库列名称
   private Set<String> mappedColumns;
   private Discriminator discriminator;
   private boolean hasNestedResultMaps;
@@ -156,7 +163,7 @@ public class ResultMap {
   public void forceNestedResultMaps() {
     hasNestedResultMaps = true;
   }
-  
+
   public Boolean getAutoMapping() {
     return autoMapping;
   }
