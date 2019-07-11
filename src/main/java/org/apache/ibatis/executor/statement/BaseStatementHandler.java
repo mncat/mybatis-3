@@ -81,8 +81,8 @@ public abstract class BaseStatementHandler implements StatementHandler {
   }
 
   /**
-   * StatementHandler创建Statement的逻辑都在这里，StatementHandler的其他子类并没有实现这个方法，直接从BaseStatementHandler
-   * 继承获得到
+   * StatementHandler创建Statement的主要逻辑都在这里，StatementHandler的其他子类并没有实现这个方法，直接从BaseStatementHandler
+   * 继承获得到，但是Statement的真正实例化是在抽象方法instantiateStatement中，留给不同的子类实现的
    * */
   @Override
   public Statement prepare(Connection connection, Integer transactionTimeout) throws SQLException {

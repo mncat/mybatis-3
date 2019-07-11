@@ -19,7 +19,7 @@ import java.sql.Connection;
 
 /**
  * Creates an {@link SqlSession} out of a connection or a DataSource
- * 
+ * 创建SqlSession，通过数据库连接创建或者从数据源创建
  * @author Clinton Begin
  */
 public interface SqlSessionFactory {
@@ -36,5 +36,4 @@ public interface SqlSessionFactory {
   SqlSession openSession(ExecutorType execType, Connection connection);
 
   Configuration getConfiguration();
-
 }

@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * @author Lasse Voss
  * 用于生成Mapper接口动态代理的实例对象，换言之这个类的工作就是创建代理对象的，
- * 这些代理对象是Mapper接口的代理
+ * 这些代理对象是Mapper接口的代理，也就是创建MapperProxy实例
  */
 public class MapperProxyFactory<T> {
 
@@ -44,15 +44,15 @@ public class MapperProxyFactory<T> {
         return methodCache;
     }
 
+    //创建代理对象，参数传递的mapperProxy就是InvocationHandler的实现类(也就是实现代理逻辑的类)
     @SuppressWarnings("unchecked")
     protected T newInstance(MapperProxy<T> mapperProxy) {
         return (T) Proxy.newProxyInstance(mapperInterface.getClassLoader(), new Class[]{mapperInterface}, mapperProxy);
     }
 
-    //生产代理了mapper接口的实例对象
+    //生产代理了mapper接口的实例对象（MapperProxy实例）
     public T newInstance(SqlSession sqlSession) {
         final MapperProxy<T> mapperProxy = new MapperProxy<T>(sqlSession, mapperInterface, methodCache);
         return newInstance(mapperProxy);
     }
-
 }

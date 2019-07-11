@@ -38,13 +38,19 @@ import org.apache.ibatis.type.TypeHandlerRegistry;
  */
 public class DefaultParameterHandler implements ParameterHandler {
 
+  //1.类型处理器注册中心
   private final TypeHandlerRegistry typeHandlerRegistry;
 
+  //2.MappedStatement是保存sql语句的数据结构
   private final MappedStatement mappedStatement;
+  //3.参数对象
   private final Object parameterObject;
+  //4.BoundSql对象是sql语句和相关信息的封装
   private BoundSql boundSql;
+  //5.全局配置对象
   private Configuration configuration;
 
+  //构造方法
   public DefaultParameterHandler(MappedStatement mappedStatement, Object parameterObject, BoundSql boundSql) {
     this.mappedStatement = mappedStatement;
     this.configuration = mappedStatement.getConfiguration();
@@ -81,9 +87,8 @@ public class DefaultParameterHandler implements ParameterHandler {
           } else if (parameterObject == null) {
               //6.如果参数是null，不管属性名是什么，都会返回null。
             value = null;
-            //判断类型处理器是否有参数类型
           } else if (typeHandlerRegistry.hasTypeHandler(parameterObject.getClass())) {
-              //7.如果参数是一个简单类型，或者是一个注册了typeHandler的对象类型，就会直接使用该参数作为返回值，和属性名无关。
+              //7.判断类型处理器是否有参数类型,如果参数是一个简单类型，或者是一个注册了typeHandler的对象类型，就会直接使用该参数作为返回值，和属性名无关。
             value = parameterObject;
           } else {
             //8.这种情况下是复杂对象或者Map类型，通过反射方便的取值。通过MetaObject操作
@@ -91,13 +96,13 @@ public class DefaultParameterHandler implements ParameterHandler {
             value = metaObject.getValue(propertyName);
           }
           TypeHandler typeHandler = parameterMapping.getTypeHandler();
-          //获取对应的数据库类型
+          //9.获取对应的数据库类型
           JdbcType jdbcType = parameterMapping.getJdbcType();
           //空类型
           if (value == null && jdbcType == null) {
             jdbcType = configuration.getJdbcTypeForNull();
           }
-          //占位符赋值设置值
+          //10.对PreparedStatement的占位符设置值(类型处理器可以给PreparedStatement设值)
           try {
             typeHandler.setParameter(ps, i + 1, value, jdbcType);
           } catch (TypeException e) {

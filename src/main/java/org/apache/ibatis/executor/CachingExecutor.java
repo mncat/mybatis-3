@@ -33,7 +33,7 @@ import org.apache.ibatis.session.RowBounds;
 import org.apache.ibatis.transaction.Transaction;
 
 /**
- * 二级缓存实现,CachingExecutor实现二级缓存采用了扎装饰器模式，内部持有真正的Executor实现类(BatchExecutor、ReuseExecutor或者SimpleExecutor)
+ * 二级缓存实现,CachingExecutor实现二级缓存采用了装饰器模式，内部持有真正的Executor实现类(BatchExecutor、ReuseExecutor或者SimpleExecutor)
  * 它继承Executor类，并重写了全部的Executor方法，内部调用对应Executor的方法，前后增加了一些缓存读取相关的逻辑
  * @author Clinton Begin
  * @author Eduardo Macarron

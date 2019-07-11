@@ -562,20 +562,31 @@ public class Configuration {
         return newExecutor(transaction, defaultExecutorType);
     }
 
+    /**
+     * 配置对象创建Executor组件，BatchExecutor/ReuseExecutor/SimpleExecutor三种
+     * 该方法在SqlSessionFactory的实现类DefaultSqlSessionFactory中会调用，得到的Executor组件会传到SqlSession中，
+     * 因为SqlSession对数据库的访问需要使用Executor来实现
+     * */
     public Executor newExecutor(Transaction transaction, ExecutorType executorType) {
+        //1.如果executorType是null，那就使用defaultExecutorType = ExecutorType.SIMPLE
         executorType = executorType == null ? defaultExecutorType : executorType;
         executorType = executorType == null ? ExecutorType.SIMPLE : executorType;
         Executor executor;
+        //2.BATCH
         if (ExecutorType.BATCH == executorType) {
             executor = new BatchExecutor(this, transaction);
+        //3.REUSE
         } else if (ExecutorType.REUSE == executorType) {
             executor = new ReuseExecutor(this, transaction);
+        //4.SIMPLE
         } else {
             executor = new SimpleExecutor(this, transaction);
         }
+        //5.如果开启了二级缓存，那么就装饰一下
         if (cacheEnabled) {
             executor = new CachingExecutor(executor);
         }
+        //6.处理插件
         executor = (Executor) interceptorChain.pluginAll(executor);
         return executor;
     }
@@ -736,6 +747,7 @@ public class Configuration {
         mapperRegistry.addMappers(packageName);
     }
 
+    //注册Mapper接口的入口方法，在XMLMapperBuilder中解析配置过程中会调用该方法
     public <T> void addMapper(Class<T> type) {
         mapperRegistry.addMapper(type);
     }

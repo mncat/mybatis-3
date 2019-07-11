@@ -47,7 +47,7 @@ import java.util.*;
  */
 public class MapperMethod {
 
-    //sqlCommand是对sql语句封装，从配置对象中获取方法的命名空间，方法名称和sql语句类型
+  //sqlCommand是对sql语句封装，从配置对象中获取方法的命名空间，方法名称和sql语句类型
   private final SqlCommand command;
   //封装mapper接口方法的相关信息(入参和返回值类型)
   private final MethodSignature method;

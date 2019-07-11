@@ -1,5 +1,5 @@
 /**
- *    Copyright 2009-2015 the original author or authors.
+ *    Copyright 2009-2019 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -71,9 +71,18 @@ public class PreparedStatementHandler extends BaseStatementHandler {
     return resultSetHandler.<E> handleCursorResultSets(ps);
   }
 
+  /**
+   *
+   * 实例化Statement的方法，在抽象父类BaseStatementHandler中没有实现，子类自行实现
+   * 不同的子类逻辑会有不同 PreparedStatementHandler/SimpleStatementHandler/CallableStatementHandler
+   *
+   * PreparedStatementHandler会预编译sql语句,返回PreparedStatement
+   * */
   @Override
   protected Statement instantiateStatement(Connection connection) throws SQLException {
+    //1.获取sql语句
     String sql = boundSql.getSql();
+    //2.处理不同的情况，预编译sql，返回的都是PreparedStatement
     if (mappedStatement.getKeyGenerator() instanceof Jdbc3KeyGenerator) {
       String[] keyColumnNames = mappedStatement.getKeyColumns();
       if (keyColumnNames == null) {

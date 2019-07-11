@@ -43,6 +43,7 @@ import org.apache.ibatis.session.SqlSession;
  *
  * The default implementation for {@link SqlSession}.
  * Note that this class is not Thread-Safe.
+ * SqlSession的主要实现类
  *
  * @author Clinton Begin
  */
@@ -67,12 +68,15 @@ public class DefaultSqlSession implements SqlSession {
   }
 
   // -> selectOne(String statement, Object parameter)
+  // -> selectList(statement, parameter)
+  // -> selectList(String statement, Object parameter, RowBounds rowBounds)
   @Override
   public <T> T selectOne(String statement) {
     return this.<T>selectOne(statement, null);
   }
 
     // -> selectList(statement, parameter)
+    // -> selectList(String statement, Object parameter, RowBounds rowBounds)
   @Override
   public <T> T selectOne(String statement, Object parameter) {
     // Popular vote was to return null on 0 results and throw exception on too many.
@@ -139,20 +143,24 @@ public class DefaultSqlSession implements SqlSession {
     }
   }
 
+  // -> selectList(String statement, Object parameter)
+  // -> selectList(String statement, Object parameter, RowBounds rowBounds)
   @Override
   public <E> List<E> selectList(String statement) {
     return this.selectList(statement, null);
   }
 
-  // -> selectList(String statement, Object parameter, RowBounds rowBounds) 151
+  // -> selectList(String statement, Object parameter, RowBounds rowBounds)
   @Override
   public <E> List<E> selectList(String statement, Object parameter) {
     return this.selectList(statement, parameter, RowBounds.DEFAULT);
   }
 
-  // -> 上面的6个查询方法最后都会走到这里，
-  // selectList(String statement, Object parameter, RowBounds rowBounds)是所
-  // 有的查询最终会走的方法
+
+  /**
+   * -> 上面的6个查询方法最后都会走到这里，
+   * selectList(String statement, Object parameter, RowBounds rowBounds)是所有的查询最终会走的方法
+   * */
   @Override
   public <E> List<E> selectList(String statement, Object parameter, RowBounds rowBounds) {
     try {
@@ -166,11 +174,13 @@ public class DefaultSqlSession implements SqlSession {
     }
   }
 
+  // -> select(String statement, Object parameter, RowBounds rowBounds, ResultHandler handler)
   @Override
   public void select(String statement, Object parameter, ResultHandler handler) {
     select(statement, parameter, RowBounds.DEFAULT, handler);
   }
 
+   // -> select(String statement, Object parameter, RowBounds rowBounds, ResultHandler handler)
   @Override
   public void select(String statement, ResultHandler handler) {
     select(statement, null, RowBounds.DEFAULT, handler);
@@ -357,7 +367,5 @@ public class DefaultSqlSession implements SqlSession {
       }
       return super.get(key);
     }
-
   }
-
 }
